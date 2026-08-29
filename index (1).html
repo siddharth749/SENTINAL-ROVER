@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SENTINEL // Patrol Unit Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090c08;
+    --bg-deep:#050704;
+    --panel:#121810;
+    --panel-alt:#0f1410;
+    --line:#22301d;
+    --line-bright:#3a4a30;
+    --amber:#e8a33d;
+    --amber-dim:#7a5a26;
+    --green:#5eea8d;
+    --green-dim:#2c5f42;
+    --red:#e5484d;
+    --red-dim:#7a2b2e;
+    --text:#e4ead9;
+    --text-dim:#8a9280;
+    --text-faint:#4d5647;
+    --disp:'Oswald',sans-serif;
+    --body:'Inter',sans-serif;
+    --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--body);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  body{
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(94,234,141,0.05), transparent 55%),
+      radial-gradient(ellipse at 90% 100%, rgba(232,163,61,0.04), transparent 50%);
+    padding:14px;
+  }
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    pointer-events:none;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.012) 0px,
+      rgba(255,255,255,0.012) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    z-index:999;
+    mix-blend-mode:overlay;
+  }
+  .wrap{max-width:1360px;margin:0 auto;}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 18px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:3px;
+    margin-bottom:10px;
+    position:relative;
+    overflow:hidden;
+  }
+  .topbar::after{
+    content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:linear-gradient(var(--amber),var(--green));
+  }
+  .brand{display:flex;align-items:baseline;gap:12px;}
+  .brand .mark{
+    font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:3px;
+    color:var(--text);
+  }
+  .brand .mark span{color:var(--amber);}
+  .brand .sub{
+    font-family:var(--mono);font-size:11px;color:var(--text-faint);
+    letter-spacing:1.5px;text-transform:uppercase;
+  }
+  .top-right{display:flex;align-items:center;gap:18px;}
+  .clock{font-family:var(--mono);font-size:13px;color:var(--text-dim);letter-spacing:1px;}
+  .status-pill{
+    display:flex;align-items:center;gap:8px;
+    font-family:var(--mono);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+    padding:6px 12px;border:1px solid var(--line);border-radius:20px;
+    color:var(--text-dim);
+  }
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;}
+  .dot.on{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+  /* ---------- grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:1.5fr 1fr;
+    gap:10px;
+  }
+  @media(max-width:900px){ .grid{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:14px 16px;
+    position:relative;
+  }
+  .panel-title{
+    font-family:var(--disp);font-weight:600;font-size:12px;letter-spacing:2.5px;
+    text-transform:uppercase;color:var(--text-dim);
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--line);
+  }
+  .panel-title .tag{color:var(--amber);font-family:var(--mono);font-size:10px;letter-spacing:1px;}
+
+  /* ---------- left column ---------- */
+  .left-col{display:flex;flex-direction:column;gap:10px;}
+
+  .cam-panel{padding:0;overflow:hidden;}
+  .cam-frame{
+    position:relative;width:100%;aspect-ratio:16/10;
+    background:var(--bg-deep);
+    border-bottom:1px solid var(--line);
+    overflow:hidden;
+  }
+  .cam-frame img{width:100%;height:100%;object-fit:cover;display:block;}
+  .cam-noise{
+    position:absolute;inset:0;
+    background:
+      repeating-conic-gradient(from 0deg,rgba(255,255,255,0.02) 0deg 2deg,transparent 2deg 4deg);
+    opacity:0;
+  }
+  .cam-frame.nosignal .cam-noise{opacity:1;animation:noise 0.4s steps(2) infinite;}
+  @keyframes noise{0%{filter:hue-rotate(0deg);}100%{filter:hue-rotate(20deg);}}
+  .cam-frame.nosignal img{display:none;}
+  .cam-empty{
+    position:absolute;inset:0;display:none;flex-direction:column;gap:6px;
+    align-items:center;justify-content:center;color:var(--text-faint);
+    font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  }
+  .cam-frame.nosignal .cam-empty{display:flex;}
+  .cam-corner{
+    position:absolute;width:22px;height:22px;border:2px solid var(--amber);
+    opacity:0.85;
+  }
+  .cam-corner.tl{top:8px;left:8px;border-right:none;border-bottom:none;}
+  .cam-corner.tr{top:8px;right:8px;border-left:none;border-bottom:none;}
+  .cam-corner.bl{bottom:8px;left:8px;border-right:none;border-top:none;}
+  .cam-corner.br{bottom:8px;right:8px;border-left:none;border-top:none;}
+  .cam-overlay-bl{
+    position:absolute;bottom:10px;left:16px;
+    font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:1px;
+    text-shadow:0 0 6px rgba(94,234,141,0.6);
+  }
+  .cam-overlay-tr{
+    position:absolute;top:10px;right:16px;
+    width:28px;height:28px;
+  }
+  .radar-sweep{
+    width:100%;height:100%;border-radius:50%;
+    border:1px solid var(--green-dim);
+    position:relative;overflow:hidden;
+  }
+  .radar-sweep::after{
+    content:'';position:absolute;inset:0;
+    background:conic-gradient(from 0deg, rgba(94,234,141,0.9), transparent 40%);
+    animation:spin 2.4s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .cam-crosshair{
+    position:absolute;top:50%;left:50%;width:36px;height:36px;
+    transform:translate(-50%,-50%);opacity:0.35;pointer-events:none;
+  }
+  .cam-crosshair::before,.cam-crosshair::after{
+    content:'';position:absolute;background:var(--green);
+  }
+  .cam-crosshair::before{top:50%;left:0;right:0;height:1px;transform:translateY(-50%);}
+  .cam-crosshair::after{left:50%;top:0;bottom:0;width:1px;transform:translateX(-50%);}
+
+  .cam-config{
+    display:flex;gap:8px;padding:10px 14px;flex-wrap:wrap;
+  }
+
+  /* ---------- log ---------- */
+  .log-panel{flex:1;min-height:150px;display:flex;flex-direction:column;}
+  .log-body{
+    flex:1;overflow-y:auto;max-height:180px;
+    font-family:var(--mono);font-size:11.5px;line-height:1.9;
+    display:flex;flex-direction:column-reverse;
+  }
+  .log-line{color:var(--text-dim);white-space:pre-wrap;}
+  .log-line .t{color:var(--text-faint);margin-right:8px;}
+  .log-line.evt{color:var(--green);}
+  .log-line.err{color:var(--red);}
+  .log-line.cmd{color:var(--amber);}
+  .log-body::-webkit-scrollbar{width:5px;}
+  .log-body::-webkit-scrollbar-thumb{background:var(--line-bright);border-radius:3px;}
+
+  /* ---------- right column ---------- */
+  .right-col{display:flex;flex-direction:column;gap:10px;}
+
+  label.field-label{
+    font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--text-faint);display:block;margin-bottom:5px;
+  }
+  input[type=text],input[type=number],select{
+    width:100%;background:var(--bg-deep);border:1px solid var(--line);
+    color:var(--text);font-family:var(--mono);font-size:13px;
+    padding:8px 10px;border-radius:2px;outline:none;
+  }
+  input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--amber-dim);}
+  .row{display:flex;gap:8px;}
+  .row > div{flex:1;}
+  .conn-row{display:flex;gap:8px;margin-top:10px;}
+
+  button{
+    font-family:var(--disp);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+    font-size:12px;border:1px solid var(--line);background:var(--bg-deep);
+    color:var(--text);padding:9px 14px;border-radius:2px;cursor:pointer;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  button:hover{border-color:var(--amber-dim);color:var(--amber);}
+  button:active{transform:translateY(1px);}
+  button.primary{background:var(--green-dim);border-color:var(--green-dim);color:#0c150f;background:var(--green);color:#08130d;}
+  button.primary:hover{filter:brightness(1.1);border-color:var(--green);color:#08130d;}
+  button.ghost{flex:1;}
+  button.primary{flex:1;}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+
+  /* ---------- joystick ---------- */
+  .joy-panel{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .joy-outer{
+    position:relative;width:200px;height:200px;
+    border-radius:50%;
+    background:
+      repeating-conic-gradient(rgba(255,255,255,0.015) 0deg 5deg, transparent 5deg 10deg),
+      radial-gradient(circle, var(--panel-alt) 0%, var(--bg-deep) 100%);
+    border:1px solid var(--line);
+    touch-action:none;
+  }
+  .joy-ring{position:absolute;border:1px solid var(--line-bright);border-radius:50%;opacity:0.5;}
+  .ring1{inset:15%;}
+  .ring2{inset:38%;}
+  .joy-axis{position:absolute;background:var(--line-bright);opacity:0.4;}
+  .axis-h{left:6%;right:6%;top:50%;height:1px;transform:translateY(-50%);}
+  .axis-v{top:6%;bottom:6%;left:50%;width:1px;transform:translateX(-50%);}
+  .joy-deg{
+    position:absolute;font-family:var(--mono);font-size:9px;color:var(--text-faint);
+  }
+  .joy-knob{
+    position:absolute;width:56px;height:56px;border-radius:50%;
+    left:50%;top:50%;transform:translate(-50%,-50%);
+    background:radial-gradient(circle at 35% 30%, #3a4a30, var(--panel-alt) 70%);
+    border:1.5px solid var(--amber);
+    box-shadow:0 0 14px rgba(232,163,61,0.35);
+    cursor:grab;
+  }
+  .joy-knob::after{
+    content:'';position:absolute;inset:38%;border-radius:50%;background:var(--amber);
+    opacity:0.8;
+  }
+  .joy-readout{
+    display:flex;gap:18px;font-family:var(--mono);font-size:11px;color:var(--text-dim);
+    letter-spacing:1px;
+  }
+  .joy-readout b{color:var(--text);}
+
+  .motor-bars{display:flex;gap:10px;width:100%;}
+  .motor-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .motor-bar-col .lbl{font-family:var(--mono);font-size:10px;color:var(--text-faint);letter-spacing:1px;}
+  .motor-bar-track{
+    width:100%;height:70px;background:var(--bg-deep);border:1px solid var(--line);
+    border-radius:2px;position:relative;overflow:hidden;
+  }
+  .motor-bar-fill{
+    position:absolute;left:0;right:0;bottom:50%;height:0%;
+    background:linear-gradient(var(--green),var(--amber));
+    transition:height 0.06s linear, bottom 0.06s linear;
+  }
+  .motor-bar-mid{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line-bright);}
+  .motor-val{font-family:var(--mono);font-size:12px;color:var(--text);}
+
+  .speed-limit{width:100%;}
+  input[type=range]{
+    width:100%;accent-color:var(--amber);
+    background:transparent;height:20px;
+  }
+
+  .stop-btn{
+    width:100%;padding:16px;font-size:15px;letter-spacing:2px;
+    background:var(--red-dim);border:1px solid var(--red);color:#ffd9da;
+    border-radius:3px;
+  }
+  .stop-btn:hover{background:var(--red);color:#1a0505;}
+
+  /* ---------- telemetry strip ---------- */
+  .telem-strip{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px;
+  }
+  @media(max-width:900px){.telem-strip{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:520px){.telem-strip{grid-template-columns:repeat(2,1fr);}}
+  .telem-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:10px 12px;position:relative;overflow:hidden;
+  }
+  .telem-card::before{
+    content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--line-bright);
+  }
+  .telem-card.live::before{background:var(--green);}
+  .telem-lbl{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--text-faint);margin-bottom:6px;
+  }
+  .telem-val{font-family:var(--mono);font-size:20px;color:var(--text);}
+  .telem-val .unit{font-size:11px;color:var(--text-dim);margin-left:3px;}
+
+  ::selection{background:var(--amber-dim);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">SENTINEL<span>—01</span></div>
+      <div class="sub">Autonomous Patrol Unit / Control Console</div>
+    </div>
+    <div class="top-right">
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">Offline</span></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: camera + log -->
+    <div class="left-col">
+      <div class="panel cam-panel">
+        <div class="cam-frame nosignal" id="camFrame">
+          <img id="camImg" alt="patrol camera feed">
+          <div class="cam-noise"></div>
+          <div class="cam-empty">
+            <div style="font-size:22px;letter-spacing:4px;">NO SIGNAL</div>
+            <div>waiting for CAM-01 stream</div>
+          </div>
+          <div class="cam-corner tl"></div><div class="cam-corner tr"></div>
+          <div class="cam-corner bl"></div><div class="cam-corner br"></div>
+          <div class="cam-crosshair"></div>
+          <div class="cam-overlay-bl" id="camLabel">CAM-01 // NO SIGNAL</div>
+          <div class="cam-overlay-tr"><div class="radar-sweep"></div></div>
+        </div>
+        <div class="cam-config">
+          <div style="flex:2;min-width:180px;">
+            <label class="field-label">Camera stream URL</label>
+            <input type="text" id="camUrl" placeholder="http://192.168.1.50:81/stream">
+          </div>
+          <div style="align-self:flex-end;">
+            <button id="camLoadBtn">Load Feed</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel log-panel">
+        <div class="panel-title">Activity Log <span class="tag" id="logCount">0 EVENTS</span></div>
+        <div class="log-body" id="logBody"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: connection + joystick + stop -->
+    <div class="right-col">
+      <div class="panel">
+        <div class="panel-title">Uplink Configuration</div>
+        <div class="row">
+          <div>
+            <label class="field-label">Unit IP Address</label>
+            <input type="text" id="ipInput" placeholder="192.168.1.50">
+          </div>
+          <div style="max-width:90px;">
+            <label class="field-label">Port</label>
+            <input type="number" id="portInput" value="81">
+          </div>
+        </div>
+        <div style="margin-top:8px;">
+          <label class="field-label">Protocol</label>
+          <select id="protoSelect">
+            <option value="ws">WebSocket (ws://ip:port/)</option>
+            <option value="http">HTTP GET (/move?left=&right=)</option>
+          </select>
+        </div>
+        <div class="conn-row">
+          <button class="primary" id="connectBtn">Connect</button>
+          <button class="ghost" id="disconnectBtn" disabled>Disconnect</button>
+        </div>
+      </div>
+
+      <div class="panel joy-panel">
+        <div class="panel-title" style="width:100%;">
+          Drive Vector
+          <div class="mode-toggle" id="modeToggle">
+            <button class="mode-btn active" data-mode="joystick" id="modeJoyBtn">Joystick</button>
+            <button class="mode-btn" data-mode="dpad" id="modeDpadBtn">D-Pad</button>
+          </div>
+        </div>
+
+        <div class="joy-outer" id="joyOuter">
+          <div class="joy-ring ring1"></div>
+          <div class="joy-ring ring2"></div>
+          <div class="joy-axis axis-h"></div>
+          <div class="joy-axis axis-v"></div>
+          <div class="joy-knob" id="joyKnob"></div>
+        </div>
+
+        <div class="dpad" id="dpad">
+          <button class="dpad-btn dpad-f" id="btnF" data-dir="f">▲<span>FWD</span></button>
+          <button class="dpad-btn dpad-l" id="btnL" data-dir="l">◀<span>LEFT</span></button>
+          <div class="dpad-center">◈</div>
+          <button class="dpad-btn dpad-r" id="btnR" data-dir="r">▶<span>RIGHT</span></button>
+          <button class="dpad-btn dpad-b" id="btnB" data-dir="b">▼<span>BACK</span></button>
+        </div>
+
+        <div class="joy-readout">
+          <div>VEC <b id="vecReadout">0.00, 0.00</b></div>
+        </div>
+
+        <div class="motor-bars">
+          <div class="motor-bar-col">
+            <div class="lbl">MOTOR L</div>
+            <div class="motor-bar-track"><div class="motor-bar-mid"></div><div class="motor-bar-fill" id="barL"></div></div>
+            <div class="motor-val" id="valL">0%</div>
+          </div>
+          <div class="motor-bar-col">
+            <div class="lbl">MOTOR R</div>
+            <div class="motor-bar-track"><div class="motor-bar-mid"></div><div class="motor-bar-fill" id="barR"></div></div>
+            <div class="motor-val" id="valR">0%</div>
+          </div>
+        </div>
+
+        <div class="speed-limit">
+          <label class="field-label">Speed Limiter — <span id="speedLimitVal">70</span>%</label>
+          <input type="range" id="speedLimit" min="10" max="100" value="70">
+        </div>
+      </div>
+
+      <button class="stop-btn" id="stopBtn">⏹ EMERGENCY STOP</button>
+    </div>
+  </div>
+
+  <!-- telemetry strip -->
+  <div class="telem-strip">
+    <div class="telem-card" id="cardBattery"><div class="telem-lbl">Battery</div><div class="telem-val" id="tBattery">--<span class="unit">%</span></div></div>
+    <div class="telem-card" id="cardSpeed"><div class="telem-lbl">Speed</div><div class="telem-val" id="tSpeed">--<span class="unit">cm/s</span></div></div>
+    <div class="telem-card" id="cardDist"><div class="telem-lbl">Obstacle Dist.</div><div class="telem-val" id="tDist">--<span class="unit">cm</span></div></div>
+    <div class="telem-card" id="cardMotorL"><div class="telem-lbl">Motor L</div><div class="telem-val" id="tMotorL">--<span class="unit">%</span></div></div>
+    <div class="telem-card" id="cardMotorR"><div class="telem-lbl">Motor R</div><div class="telem-val" id="tMotorR">--<span class="unit">%</span></div></div>
+    <div class="telem-card" id="cardUptime"><div class="telem-lbl">Link Uptime</div><div class="telem-val" id="tUptime">00:00<span class="unit"></span></div></div>
+  </div>
+
+</div>
+
+<script>
+// ---------------- clock ----------------
+function tickClock(){
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB',{hour12:false});
+}
+setInterval(tickClock,1000); tickClock();
+
+// ---------------- log ----------------
+const logBody = document.getElementById('logBody');
+const logCount = document.getElementById('logCount');
+let logN = 0;
+function log(msg, cls){
+  logN++;
+  logCount.textContent = logN + ' EVENTS';
+  const line = document.createElement('div');
+  line.className = 'log-line ' + (cls||'');
+  const t = new Date().toLocaleTimeString('en-GB',{hour12:false});
+  line.innerHTML = '<span class="t">'+t+'</span>'+msg;
+  logBody.prepend(line);
+  while(logBody.children.length > 200){ logBody.removeChild(logBody.lastChild); }
+}
+log('Console initialized. Awaiting uplink configuration.', 'evt');
+
+// ---------------- connection state ----------------
+let ws = null;
+let connected = false;
+let linkStartTime = null;
+let uptimeInterval = null;
+
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const connectBtn = document.getElementById('connectBtn');
+const disconnectBtn = document.getElementById('disconnectBtn');
+const ipInput = document.getElementById('ipInput');
+const portInput = document.getElementById('portInput');
+const protoSelect = document.getElementById('protoSelect');
+
+function setConnected(state){
+  connected = state;
+  statusDot.classList.toggle('on', state);
+  statusText.textContent = state ? ('Online — ' + ipInput.value) : 'Offline';
+  connectBtn.disabled = state;
+  disconnectBtn.disabled = !state;
+  document.querySelectorAll('#cardBattery,#cardSpeed,#cardDist,#cardMotorL,#cardMotorR,#cardUptime')
+    .forEach(c=>c.classList.toggle('live', state));
+  if(state){
+    linkStartTime = Date.now();
+    uptimeInterval = setInterval(updateUptime, 1000);
+  } else {
+    clearInterval(uptimeInterval);
+    document.getElementById('tUptime').innerHTML = '00:00';
+    resetTelemetry();
+  }
+}
+function updateUptime(){
+  const s = Math.floor((Date.now()-linkStartTime)/1000);
+  const mm = String(Math.floor(s/60)).padStart(2,'0');
+  const ss = String(s%60).padStart(2,'0');
+  document.getElementById('tUptime').innerHTML = mm+':'+ss;
+}
+function resetTelemetry(){
+  ['tBattery','tSpeed','tDist','tMotorL','tMotorR'].forEach(id=>{
+    const el = document.getElementById(id);
+    const unit = el.querySelector('.unit');
+    el.innerHTML = '--' + (unit ? unit.outerHTML : '');
+  });
+}
+
+connectBtn.addEventListener('click', ()=>{
+  const ip = ipInput.value.trim();
+  if(!ip){ log('Cannot connect — no IP address entered.', 'err'); return; }
+  const proto = protoSelect.value;
+  if(proto === 'ws'){
+    const port = portInput.value || 81;
+    const url = 'ws://'+ip+':'+port+'/';
+    try{
+      ws = new WebSocket(url);
+      log('Opening WebSocket uplink to '+url+' …', 'cmd');
+      ws.onopen = ()=>{ setConnected(true); log('Uplink established.', 'evt'); };
+      ws.onclose = ()=>{ setConnected(false); log('Uplink closed.', 'err'); };
+      ws.onerror = ()=>{ log('WebSocket error — check IP/port and that the unit is broadcasting.', 'err'); };
+      ws.onmessage = (ev)=>{
+        try{
+          const data = JSON.parse(ev.data);
+          applyTelemetry(data);
+        }catch(e){ /* non-JSON message, ignore */ }
+      };
+    }catch(e){ log('Failed to open WebSocket: '+e.message, 'err'); }
+  } else {
+    // HTTP mode — no persistent connection, just mark as "connected" for sending commands
+    setConnected(true);
+    log('HTTP mode selected — commands will be sent as GET requests to '+ip, 'evt');
+  }
+});
+disconnectBtn.addEventListener('click', ()=>{
+  if(ws){ ws.close(); ws = null; }
+  setConnected(false);
+  log('Disconnected by operator.', 'evt');
+});
+
+function applyTelemetry(data){
+  if('battery' in data) document.getElementById('tBattery').innerHTML = data.battery+'<span class="unit">%</span>';
+  if('speed' in data) document.getElementById('tSpeed').innerHTML = data.speed+'<span class="unit">cm/s</span>';
+  if('distance' in data) document.getElementById('tDist').innerHTML = data.distance+'<span class="unit">cm</span>';
+  if('motorL' in data) document.getElementById('tMotorL').innerHTML = data.motorL+'<span class="unit">%</span>';
+  if('motorR' in data) document.getElementById('tMotorR').innerHTML = data.motorR+'<span class="unit">%</span>';
+}
+
+// ---------------- command sending ----------------
+function sendDrive(leftPct, rightPct){
+  if(!connected) return;
+  const proto = protoSelect.value;
+  if(proto === 'ws'){
+    if(ws && ws.readyState === WebSocket.OPEN){
+      ws.send(JSON.stringify({type:'drive', left:leftPct, right:rightPct}));
+    }
+  } else {
+    const ip = ipInput.value.trim();
+    fetch('http://'+ip+'/move?left='+leftPct+'&right='+rightPct)
+      .catch(()=>{ log('HTTP command failed to reach unit.', 'err'); });
+  }
+}
+function sendStop(){
+  if(!connected){ log('Stop requested — no active uplink.', 'err'); return; }
+  const proto = protoSelect.value;
+  if(proto === 'ws' && ws && ws.readyState === WebSocket.OPEN){
+    ws.send(JSON.stringify({type:'stop'}));
+  } else if(proto === 'http'){
+    const ip = ipInput.value.trim();
+    fetch('http://'+ip+'/move?left=0&right=0').catch(()=>{});
+  }
+  setMotorDisplay(0,0);
+  log('EMERGENCY STOP sent.', 'cmd');
+}
+document.getElementById('stopBtn').addEventListener('click', sendStop);
+
+// ---------------- joystick ----------------
+const joyOuter = document.getElementById('joyOuter');
+const joyKnob = document.getElementById('joyKnob');
+const vecReadout = document.getElementById('vecReadout');
+const barL = document.getElementById('barL');
+const barR = document.getElementById('barR');
+const valL = document.getElementById('valL');
+const valR = document.getElementById('valR');
+const speedLimit = document.getElementById('speedLimit');
+const speedLimitVal = document.getElementById('speedLimitVal');
+
+speedLimit.addEventListener('input', ()=>{ speedLimitVal.textContent = speedLimit.value; });
+
+let dragging = false;
+let sendTimer = null;
+const RADIUS = 100; // px, half of joy-outer width
+const DEADZONE = 0.08;
+
+function setMotorDisplay(leftPct, rightPct){
+  valL.textContent = leftPct + '%';
+  valR.textContent = rightPct + '%';
+  const hL = Math.min(Math.abs(leftPct),100)/2;
+  const hR = Math.min(Math.abs(rightPct),100)/2;
+  barL.style.height = hL + '%';
+  barR.style.height = hR + '%';
+  barL.style.bottom = leftPct >= 0 ? '50%' : (50-hL)+'%';
+  barR.style.bottom = rightPct >= 0 ? '50%' : (50-hR)+'%';
+}
+
+function handleMove(clientX, clientY){
+  const rect = joyOuter.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  let dx = clientX - cx;
+  let dy = clientY - cy;
+  const dist = Math.sqrt(dx*dx+dy*dy);
+  const maxDist = rect.width/2 - 28;
+  if(dist > maxDist){
+    dx = dx * maxDist/dist;
+    dy = dy * maxDist/dist;
+  }
+  joyKnob.style.transform = 'translate(calc(-50% + '+dx+'px), calc(-50% + '+dy+'px))';
+
+  let nx = dx / maxDist;   // -1..1
+  let ny = dy / maxDist;   // -1..1 (down positive)
+  if(Math.sqrt(nx*nx+ny*ny) < DEADZONE){ nx = 0; ny = 0; }
+
+  vecReadout.textContent = nx.toFixed(2) + ', ' + (-ny).toFixed(2);
+
+  const limit = speedLimit.value / 100;
+  const forward = -ny;   // up = forward
+  const turn = nx;
+  let left = Math.max(-1, Math.min(1, forward + turn));
+  let right = Math.max(-1, Math.min(1, forward - turn));
+  const leftPct = Math.round(left * limit * 100);
+  const rightPct = Math.round(right * limit * 100);
+  setMotorDisplay(leftPct, rightPct);
+  return {leftPct, rightPct};
+}
+
+function resetKnob(){
+  joyKnob.style.transform = 'translate(-50%, -50%)';
+  vecReadout.textContent = '0.00, 0.00';
+  setMotorDisplay(0,0);
+}
+
+let lastCmd = {leftPct:0,rightPct:0};
+
+function startDrag(e){
+  dragging = true;
+  joyKnob.style.cursor = 'grabbing';
+  sendTimer = setInterval(()=>{ sendDrive(lastCmd.leftPct, lastCmd.rightPct); }, 120);
+}
+function endDrag(){
+  if(!dragging) return;
+  dragging = false;
+  joyKnob.style.cursor = 'grab';
+  clearInterval(sendTimer);
+  resetKnob();
+  sendDrive(0,0);
+}
+
+joyOuter.addEventListener('pointerdown', (e)=>{
+  startDrag();
+  lastCmd = handleMove(e.clientX, e.clientY);
+  joyOuter.setPointerCapture(e.pointerId);
+});
+joyOuter.addEventListener('pointermove', (e)=>{
+  if(!dragging) return;
+  lastCmd = handleMove(e.clientX, e.clientY);
+});
+joyOuter.addEventListener('pointerup', endDrag);
+joyOuter.addEventListener('pointercancel', endDrag);
+joyOuter.addEventListener('lostpointercapture', endDrag);
+
+// ---------------- camera feed ----------------
+const camFrame = document.getElementById('camFrame');
+const camImg = document.getElementById('camImg');
+const camLabel = document.getElementById('camLabel');
+const camUrl = document.getElementById('camUrl');
+const camLoadBtn = document.getElementById('camLoadBtn');
+
+function loadCam(){
+  const url = camUrl.value.trim();
+  if(!url){ log('No camera URL provided.', 'err'); return; }
+  camImg.onload = ()=>{ camFrame.classList.remove('nosignal'); camLabel.textContent = 'CAM-01 // LIVE'; log('Camera feed connected.', 'evt'); };
+  camImg.onerror = ()=>{ camFrame.classList.add('nosignal'); camLabel.textContent = 'CAM-01 // NO SIGNAL'; log('Camera feed failed to load.', 'err'); };
+  camImg.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+}
+camLoadBtn.addEventListener('click', loadCam);
+
+// auto-fill camera URL guess when IP changes
+ipInput.addEventListener('change', ()=>{
+  if(!camUrl.value && ipInput.value){
+    camUrl.value = 'http://'+ipInput.value.trim()+':81/stream';
+  }
+});
+</script>
+</body>
+</html>
