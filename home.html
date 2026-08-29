@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SENTINEL // Autonomous Patrol Unit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#090c08; --bg-deep:#050704; --panel:#121810; --panel-alt:#0f1410;
+    --line:#22301d; --line-bright:#3a4a30;
+    --amber:#e8a33d; --amber-dim:#7a5a26;
+    --green:#5eea8d; --green-dim:#2c5f42;
+    --red:#e5484d;
+    --text:#e4ead9; --text-dim:#8a9280; --text-faint:#4d5647;
+    --disp:'Oswald',sans-serif; --body:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;}
+  body{
+    background-image:
+      radial-gradient(ellipse at 15% 0%, rgba(94,234,141,0.06), transparent 55%),
+      radial-gradient(ellipse at 90% 100%, rgba(232,163,61,0.05), transparent 50%);
+  }
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:999;mix-blend-mode:overlay;
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+  }
+  .wrap{max-width:900px;margin:0 auto;padding:60px 20px 80px;}
+
+  .topline{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--text-faint);
+    text-transform:uppercase;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:60px;
+  }
+  .topline a{color:var(--text-dim);text-decoration:none;border:1px solid var(--line);padding:6px 12px;border-radius:20px;}
+  .topline a:hover{color:var(--amber);border-color:var(--amber-dim);}
+
+  .hero{text-align:center;margin-bottom:70px;}
+  .hero .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:4px;color:var(--green);
+    text-transform:uppercase;margin-bottom:18px;
+  }
+  .hero h1{
+    font-family:var(--disp);font-weight:700;font-size:clamp(38px,7vw,72px);letter-spacing:4px;
+    line-height:1.05;
+  }
+  .hero h1 span{color:var(--amber);}
+  .hero .tagline{
+    font-family:var(--body);font-weight:500;font-size:17px;color:var(--text-dim);
+    max-width:560px;margin:20px auto 0;line-height:1.6;
+  }
+  .hero-actions{display:flex;justify-content:center;gap:14px;margin-top:34px;flex-wrap:wrap;}
+  .btn{
+    font-family:var(--disp);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+    font-size:13px;padding:13px 26px;border-radius:2px;text-decoration:none;
+    border:1px solid var(--line);color:var(--text);transition:border-color .15s, color .15s;
+  }
+  .btn:hover{border-color:var(--amber-dim);color:var(--amber);}
+  .btn.primary{background:var(--green);color:#08130d;border-color:var(--green);}
+  .btn.primary:hover{filter:brightness(1.1);color:#08130d;}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:26px 30px;margin-bottom:20px;position:relative;overflow:hidden;
+  }
+  .panel::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(var(--amber),var(--green));}
+  .panel-label{
+    font-family:var(--mono);font-size:11px;letter-spacing:2.5px;text-transform:uppercase;
+    color:var(--amber);margin-bottom:12px;
+  }
+  .panel p{color:var(--text-dim);line-height:1.75;font-size:15px;}
+  .panel p + p{margin-top:12px;}
+
+  .edit-note{
+    font-family:var(--mono);font-size:11px;color:var(--text-faint);
+    border:1px dashed var(--line-bright);border-radius:3px;padding:12px 16px;margin-top:40px;
+    line-height:1.7;
+  }
+  .edit-note b{color:var(--amber);}
+
+  footer{
+    text-align:center;font-family:var(--mono);font-size:10px;color:var(--text-faint);
+    letter-spacing:1.5px;text-transform:uppercase;margin-top:50px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topline">
+    <span>SENTINEL // Home</span>
+    <a href="index.html">Console →</a>
+  </div>
+
+  <div class="hero">
+    <div class="eyebrow">Smart India Hackathon 2026</div>
+    <h1>SENTINEL<span>—01</span></h1>
+    <p class="tagline">
+      An autonomous, AI-assisted patrol robot built to monitor campuses, warehouses, and
+      restricted zones — giving human guards real-time eyes, ears, and alerts where they can't always be.
+    </p>
+    <div class="hero-actions">
+      <a href="index.html" class="btn primary">Launch Control Console</a>
+      <a href="#problem" class="btn">Read Problem Statement</a>
+    </div>
+  </div>
+
+  <div class="panel" id="problem">
+    <div class="panel-label">Problem Statement</div>
+    <p>
+      [ EDIT ME — paste your team's actual SIH problem statement here: the problem statement ID,
+      the organization that posted it, and the core problem being addressed. ]
+    </p>
+    <p>
+      Security patrolling in large facilities today relies almost entirely on manual guard rounds,
+      which are inconsistent, fatiguing over long shifts, and leave blind spots during low-visibility
+      hours. SENTINEL is a low-cost, ESP32-driven rover that can patrol a defined route or be
+      remotely piloted, stream live video, and flag anomalies — reducing the load on human
+      security staff without replacing their judgment.
+    </p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">What SENTINEL Does</div>
+    <p>
+      A 4-motor differential-drive rover controlled from a browser-based console over WiFi —
+      live camera feed, joystick or D-pad driving, and real-time telemetry (battery, speed,
+      obstacle distance) reported back from the unit as it moves.
+    </p>
+  </div>
+
+  <div class="edit-note">
+    <b>Note:</b> Replace the bracketed problem-statement text above with your team's real SIH
+    problem statement ID and description before your demo/submission — this is placeholder copy.
+  </div>
+
+  <footer>SENTINEL-01 · Autonomous Patrol Unit · SIH 2026</footer>
+</div>
+</body>
+</html>
