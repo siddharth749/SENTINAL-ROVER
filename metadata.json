@@ -1,0 +1,6 @@
+{
+  "name": "ARGUS // Autonomous Mine Safety & Perception",
+  "description": "Autonomous multi-sensor perception and deterministic fail-safe safety platform engineered for heavy open-cast mining vehicles in dense fog, dust, and degraded visibility.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
